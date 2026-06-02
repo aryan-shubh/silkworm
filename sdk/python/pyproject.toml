@@ -49,10 +49,12 @@ classifiers = [
 dependencies = []
 
 [project.optional-dependencies]
-# `pip install siliconworm[torch]` enables the helper that converts torch
-# tensors / numpy scalars to plain Python floats inside .log().
+# Auto-coercion of framework tensors inside .log() — pulled in only if you
+# ask for them. The SDK itself remains zero-dependency at the wheel level.
 torch = ["torch>=2.0"]
 numpy = ["numpy>=1.24"]
+mlx = ["mlx>=0.20"]              # Apple Silicon — Metal-backed arrays
+all = ["torch>=2.0", "numpy>=1.24", "mlx>=0.20"]
 dev = [
   "build>=1.2",
   "twine>=5",

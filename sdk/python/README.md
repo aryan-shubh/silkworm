@@ -15,7 +15,9 @@ shipped to a remote ingest endpoint.
 ```bash
 pip install siliconworm                # core, zero required deps
 pip install "siliconworm[torch]"       # adds torch tensor auto-coercion
+pip install "siliconworm[mlx]"         # adds MLX (Apple Silicon) coercion
 pip install "siliconworm[numpy]"       # adds numpy scalar auto-coercion
+pip install "siliconworm[all]"         # all of the above
 ```
 
 Source install:
@@ -108,11 +110,16 @@ The bare module also exposes `siliconworm.log(...)` / `siliconworm.finish()` tha
 dispatch to the most recent `init()` — handy when threading a run object
 through your code is awkward.
 
-### Tensor / numpy coercion
+### Tensor coercion
 
-`run.log({"loss": tensor})` does the right thing — 0-d torch tensors become
-`tensor.item()`, vectors become `.mean().item()`. Same for numpy scalars.
-No need to call `.item()` yourself.
+`run.log({"loss": tensor})` does the right thing for **torch**, **numpy**,
+and **mlx**: 0-d arrays become `.item()`, nd arrays become `.mean().item()`.
+No need to call `.item()` yourself — and the SDK doesn't import any of those
+libraries unless you actually pass one in.
+
+Internally this goes through a per-type dispatch cache, so after the first
+call for a given type the cost is a single dict lookup. Logging at 10k
+calls/s is comfortable from Python.
 
 ### Context manager
 

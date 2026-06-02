@@ -54,6 +54,18 @@ _NOUNS = [
 
 # ───────────────────────── id + name helpers ─────────────────────────
 
+def _atomic_write(path: Path, text: str) -> None:
+    """Write `text` to `path` atomically via a sibling tmp + os.replace().
+
+    Same dirname so the rename is on the same filesystem (kernel rename(2)
+    is atomic in that case). The tmp file gets a pid/thread suffix to keep
+    concurrent writers from each other.
+    """
+    tmp = path.with_suffix(path.suffix + f".tmp.{os.getpid()}.{threading.get_ident():x}")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
+
+
 # Crockford base32, ULID-style — 10 chars of ms timestamp + 16 chars of random.
 _ULID_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
 
@@ -83,43 +95,101 @@ def _generate_name(seed: int | None = None) -> str:
 
 
 # ───────────────────────── value coercion ─────────────────────────
+#
+# Architecture: a per-type coercer registry. The first time we see a given
+# concrete `type(v)`, we figure out which coercer to use and stash it in a
+# dict. Subsequent calls for the same type are a single dict lookup plus a
+# function call — no f-string formatting, no isinstance chain. This matters
+# because .log() is in the hot path of every training step.
+#
+# Backends are dispatched by module-name prefix on the class path, so we
+# never import torch / numpy / mlx at SDK load time. Users who don't have
+# those installed pay zero overhead and zero import cost.
 
-def _coerce_scalar(v: Any) -> float | int | str | bool | None:
-    """Best-effort conversion of a logged value to a JSON-safe scalar.
+from typing import Callable  # noqa: E402  — kept next to the helpers that use it
 
-    Recognises torch tensors and numpy scalars without importing either at
-    module load — we don't want to make those libraries hard dependencies of
-    the SDK.
-    """
-    if v is None or isinstance(v, (bool, int, float, str)):
-        return v
-    # Torch tensor — .item() works for 0-d tensors; for vectors we take the mean.
-    cls_path = f"{type(v).__module__}.{type(v).__name__}"
-    if cls_path.startswith("torch."):
-        try:
-            t = v.detach()  # type: ignore[union-attr]
-            if t.ndim == 0:
-                return float(t.item())
-            return float(t.float().mean().item())
-        except Exception:
-            return None
-    # numpy scalar / 0-d array
-    if cls_path.startswith("numpy."):
-        try:
-            return float(v.item())  # type: ignore[union-attr]
-        except Exception:
-            try:
-                return float(v.mean())  # type: ignore[union-attr]
-            except Exception:
-                return None
-    # last-ditch: string repr
+_Scalar = float | int | str | bool | None
+_Coercer = Callable[[Any], _Scalar]
+
+# Built-in pass-through types — by far the common case.
+_PASSTHROUGH_TYPES = (bool, int, float, str, type(None))
+
+
+def _coerce_passthrough(v: Any) -> _Scalar:
+    return v
+
+
+def _coerce_fallback(v: Any) -> _Scalar:
     try:
         return float(v)
     except Exception:
         return str(v)
 
 
+def _coerce_torch(v: Any) -> _Scalar:
+    # detach() to drop autograd graph, then .item() for 0-d, .mean().item() for nd.
+    try:
+        t = v.detach()
+        if t.ndim == 0:
+            return float(t.item())
+        return float(t.float().mean().item())
+    except Exception:
+        return None
+
+
+def _coerce_numpy(v: Any) -> _Scalar:
+    try:
+        return float(v.item())
+    except Exception:
+        try:
+            return float(v.mean())
+        except Exception:
+            return None
+
+
+def _coerce_mlx(v: Any) -> _Scalar:
+    # MLX is lazy — .item() on a 0-d array forces the underlying graph to
+    # eval, which is what we want for a logged scalar.  For nd arrays we
+    # take the mean (a 0-d array) and item() that.
+    try:
+        if v.ndim == 0:
+            return float(v.item())
+        return float(v.mean().item())
+    except Exception:
+        return None
+
+
+def _resolve_coercer(t: type) -> _Coercer:
+    """Pick a coercer for an unfamiliar type. Called at most once per type."""
+    if t in _PASSTHROUGH_TYPES:
+        return _coerce_passthrough
+    cls_path = f"{t.__module__}.{t.__name__}"
+    if cls_path.startswith("torch."):
+        return _coerce_torch
+    if cls_path.startswith("numpy."):
+        return _coerce_numpy
+    if cls_path.startswith("mlx."):  # both mlx.core.array and mlx.nn.* etc.
+        return _coerce_mlx
+    return _coerce_fallback
+
+
+# Hot-path dispatch table. Populated lazily.
+_COERCERS: dict[type, _Coercer] = {t: _coerce_passthrough for t in _PASSTHROUGH_TYPES}
+
+
+def _coerce_scalar(v: Any) -> _Scalar:
+    """Hot path: O(1) dict lookup → cached coercer for type(v)."""
+    t = type(v)
+    coercer = _COERCERS.get(t)
+    if coercer is None:
+        coercer = _resolve_coercer(t)
+        _COERCERS[t] = coercer
+    return coercer(v)
+
+
 def _normalize_metrics(metrics: dict[str, Any]) -> dict[str, Any]:
+    # Dict-comprehension keeps this a single allocation; the per-key cost is
+    # the cached coercer call plus a str() on the key.
     return {str(k): _coerce_scalar(v) for k, v in metrics.items()}
 
 
@@ -211,7 +281,7 @@ class Run:
 
         self._write_config()
         self._write_summary()
-        Path(self._system_path).write_text(json.dumps(self._system, indent=2, default=str))
+        _atomic_write(self._system_path, json.dumps(self._system, indent=2, default=str))
 
         # Background flusher — small and dumb, runs until finish().
         self._stop = threading.Event()
@@ -296,7 +366,7 @@ class Run:
             **finish_payload,
             "tags": self.tags, "group": self.group,
         }
-        self._summary_path.write_text(json.dumps(meta, indent=2, default=str))
+        _atomic_write(self._summary_path, json.dumps(meta, indent=2, default=str))
         self._client.post_finish(self.id, finish_payload)
 
         global _current
@@ -343,12 +413,18 @@ class Run:
             "config": self.config,
             "started_at": self._started_at.isoformat(),
         }
-        self._config_path.write_text(json.dumps(payload, indent=2, default=str))
+        _atomic_write(self._config_path, json.dumps(payload, indent=2, default=str))
 
     def _write_summary(self) -> None:
-        # Eagerly written so an ad-hoc reader (or the dashboard) can pick up
-        # the latest values even mid-run.
-        self._summary_path.write_text(json.dumps(dict(self.summary), indent=2, default=str))
+        # Atomic write — render to a sibling tmp file, then os.replace() it
+        # over the target. Guarantees a reader (the dashboard, an external
+        # tool) sees either the previous version or the new one, never a
+        # partial write. write_text() alone is a single write() syscall
+        # but a crash mid-syscall can still truncate.
+        _atomic_write(
+            self._summary_path,
+            json.dumps(dict(self.summary), indent=2, default=str),
+        )
 
     def _drain_locked(self) -> list[dict[str, Any]]:
         with self._buf_lock:

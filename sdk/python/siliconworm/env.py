@@ -64,6 +64,48 @@ def _gpu_info() -> dict[str, Any] | None:
         return None
 
 
+def _mlx_info() -> dict[str, Any] | None:
+    """If mlx is importable, return version + Metal device info.
+
+    MLX is Apple's array framework — the typical use case here is M-series
+    Macs where the GPU is the Metal device. We expose what the user actually
+    needs in the dashboard: framework version, whether Metal is live, device
+    name, and memory ceilings.
+    """
+    try:
+        import mlx  # type: ignore[import-not-found]
+        import mlx.core as mx  # type: ignore[import-not-found]
+    except Exception:
+        return None
+    info: dict[str, Any] = {
+        "available": True,
+        "mlx_version": getattr(mlx, "__version__", None),
+    }
+    # mlx.metal exists on macOS builds; gate every probe so a non-mac build
+    # doesn't tank the capture.
+    metal = getattr(mx, "metal", None)
+    if metal is not None:
+        info["metal_available"] = _safe(metal.is_available, default=False)
+        device = _safe(metal.device_info)
+        if isinstance(device, dict):
+            info["device"] = {
+                "name": device.get("device_name"),
+                "architecture": device.get("architecture"),
+                "memory_size_gb": round(
+                    (device.get("memory_size") or 0) / 1024**3, 2
+                ) or None,
+                "max_buffer_gb": round(
+                    (device.get("max_buffer_length") or 0) / 1024**3, 2
+                ) or None,
+                "max_recommended_working_set_gb": round(
+                    (device.get("max_recommended_working_set_size") or 0) / 1024**3, 2
+                ) or None,
+            }
+    # Current default device, e.g. Device(gpu, 0) on M-series.
+    info["default_device"] = _safe(lambda: repr(mx.default_device()))
+    return info
+
+
 def capture() -> dict[str, Any]:
     """Snapshot of the host environment at run start.
 
@@ -97,4 +139,5 @@ def capture() -> dict[str, Any]:
             "pid": os.getpid(),
         },
         "gpu": _gpu_info(),
+        "mlx": _mlx_info(),
     }
