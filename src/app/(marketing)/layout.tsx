@@ -1,8 +1,16 @@
+import { WordmarkHeader } from "@/components/marketing/wordmark-header";
+import { Footer } from "@/components/marketing/footer";
+
 export default function MarketingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Scaffold only — Phase C replaces with the real wordmark header + footer.
-  return <div className="min-h-dvh">{children}</div>;
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <WordmarkHeader />
+      <main className="flex-1">{children}</main>
+      <Footer />
+    </div>
+  );
 }
