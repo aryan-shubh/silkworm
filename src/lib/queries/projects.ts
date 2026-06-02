@@ -1,4 +1,4 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { getDb } from "../db";
 import { projects, runs } from "../schema";
 
@@ -38,29 +38,45 @@ export async function listProjects(orgId: string): Promise<Project[]> {
     .from(projects)
     .where(eq(projects.orgId, orgId));
 
-  // Per-project counts.
-  const result: Project[] = [];
-  for (const p of rows) {
-    const allRuns = await db
-      .select({ status: runs.status, startedAt: runs.startedAt })
-      .from(runs)
-      .where(eq(runs.projectId, p.id));
-    const activeCount = allRuns.filter((r) => r.status === "running").length;
-    const latest = allRuns
-      .map((r) => r.startedAt)
-      .toSorted((a, b) => +b - +a)[0];
-    result.push({
+  if (rows.length === 0) return [];
+
+  // One batched query for all run rows we care about.
+  const projectIds = rows.map((p) => p.id);
+  const runRows = await db
+    .select({
+      projectId: runs.projectId,
+      status: runs.status,
+      startedAt: runs.startedAt,
+    })
+    .from(runs)
+    .where(inArray(runs.projectId, projectIds));
+
+  // Group in memory.
+  const byProject = new Map<
+    string,
+    { total: number; active: number; latest: Date | null }
+  >();
+  for (const id of projectIds) byProject.set(id, { total: 0, active: 0, latest: null });
+  for (const r of runRows) {
+    const agg = byProject.get(r.projectId)!;
+    agg.total += 1;
+    if (r.status === "running") agg.active += 1;
+    if (!agg.latest || r.startedAt > agg.latest) agg.latest = r.startedAt;
+  }
+
+  return rows.map((p) => {
+    const agg = byProject.get(p.id)!;
+    return {
       id: p.id,
       slug: p.slug,
       name: p.name,
       description: p.description ?? "",
       framework: FRAMEWORK_BY_SLUG[p.slug] ?? "—",
-      runCount: allRuns.length,
-      activeCount,
-      updated: (latest ?? new Date()).toISOString(),
-    });
-  }
-  return result;
+      runCount: agg.total,
+      activeCount: agg.active,
+      updated: (agg.latest ?? new Date()).toISOString(),
+    };
+  });
 }
 
 export async function getProjectBySlug(
