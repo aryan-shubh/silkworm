@@ -1,6 +1,8 @@
 import { WordmarkHeader } from "@/components/marketing/wordmark-header";
 import { Footer } from "@/components/marketing/footer";
 
+export const dynamic = "force-dynamic";
+
 export default function MarketingLayout({
   children,
 }: {
