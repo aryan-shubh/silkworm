@@ -6,8 +6,8 @@ import {
   Check,
   ChevronRight,
   Mail,
+  MessageSquare,
   Plus,
-  Slack,
   Webhook,
   ZapOff,
 } from "lucide-react";
@@ -57,7 +57,7 @@ const SEVERITY_META: Record<
 
 const CHANNEL_ICON: Record<AlertChannel, React.ElementType> = {
   email: Mail,
-  slack: Slack,
+  slack: MessageSquare,
   pagerduty: Bell,
   webhook: Webhook,
 };
