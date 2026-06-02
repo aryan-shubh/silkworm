@@ -26,11 +26,13 @@ Typography: Instrument Serif (display) · IBM Plex Sans (UI) · JetBrains Mono (
 
 ```bash
 bun install
-cp .env.example .env.local   # values can stay dummy — DB isn't reached yet
+cp .env.example .env.local       # set DATABASE_URL to your PlanetScale dev branch
+bun run db:push                  # apply schema
+bun run db:seed                  # load the demo acme org + MNIST run
 bun dev
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3000>. The landing renders at `/`; the dashboard is at `/dashboard`.
 
 ## Routes
 
