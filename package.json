@@ -56,6 +56,6 @@
     "oxlint": "^1.68.0",
     "postcss": "^8.5.1",
     "tailwindcss": "^4.3.0",
-    "typescript": "^5.7.3"
+    "typescript": "^6.0.3"
   }
 }
