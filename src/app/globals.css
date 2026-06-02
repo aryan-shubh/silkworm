@@ -2,10 +2,10 @@
 
 @theme {
   /* ───────────── surfaces ───────────── */
-  --color-canvas: oklch(0.987 0.004 90);          /* warm off-white page */
-  --color-surface: oklch(1 0 0);                  /* card / panel — pure white */
-  --color-surface-2: oklch(0.97 0.005 90);        /* sunken / striped row */
-  --color-surface-hover: oklch(0.955 0.006 90);   /* row/cell hover */
+  --color-canvas: oklch(1 0 0);                   /* pure white page */
+  --color-surface: oklch(1 0 0);                  /* card / panel */
+  --color-surface-2: oklch(0.975 0 0);            /* sunken / striped row */
+  --color-surface-hover: oklch(0.96 0 0);         /* row/cell hover */
 
   /* ───────────── lines ───────────── */
   --color-line: oklch(0.91 0.006 90);             /* hairline rule */

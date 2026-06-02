@@ -7,3 +7,6 @@ out
 next-env.d.ts
 .DS_Store
 drizzle/migrations
+
+# local training scratch — never push real datasets / checkpoints
+_training/

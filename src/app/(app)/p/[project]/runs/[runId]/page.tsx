@@ -19,7 +19,11 @@ export default async function RunPage({
   const run = getRun(slug, runId);
   if (!project || !run) return notFound();
 
-  const m = (name: string) => run.metrics.find((x) => x.name === name)!.data;
+  const m = (name: string) => run.metrics.find((x) => x.name === name)?.data ?? [];
+  const lastOf = (name: string, fallback = 0) => {
+    const a = m(name);
+    return a.length ? a[a.length - 1] : fallback;
+  };
   const statusTone =
     run.status === "running" ? "success" :
     run.status === "finished" ? "neutral" :
@@ -80,8 +84,8 @@ export default async function RunPage({
           <MetricTile label="train_loss" value={run.summary.train_loss.toFixed(3)} trend={m("train_loss").slice(-30)} good="down" />
           <MetricTile label="val_loss"   value={run.summary.val_loss.toFixed(3)}   trend={m("val_loss").slice(-30)} good="down" />
           <MetricTile label="accuracy"   value={`${(run.summary.accuracy * 100).toFixed(2)}%`} trend={m("accuracy").slice(-30)} good="up" />
-          <MetricTile label="grad_norm"  value={m("grad_norm").at(-1)!.toFixed(2)} trend={m("grad_norm").slice(-30)} good="neutral" />
-          <MetricTile label="gpu_util"   value={`${m("gpu_util").at(-1)!.toFixed(0)}%`} trend={m("gpu_util").slice(-30)} good="up" />
+          <MetricTile label="grad_norm"  value={lastOf("grad_norm").toFixed(2)} trend={m("grad_norm").slice(-30)} good="neutral" />
+          <MetricTile label="gpu_util"   value={`${lastOf("gpu_util").toFixed(0)}%`} trend={m("gpu_util").slice(-30)} good="up" />
         </div>
 
         {/* tabs */}

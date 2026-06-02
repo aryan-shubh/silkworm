@@ -1,7 +1,10 @@
 /**
  * Deterministic mock data so SSR + client render the same thing.
- * No DB required for Phase 1 UI work.
+ * Most projects/runs are synthetic — the one exception is `mnist-mlp /
+ * demo-run-1`, which is real metrics captured by `_training/train.py`.
  */
+
+import { DEMO_RUN, DEMO_SUMMARY } from "./demo-run";
 
 type Status = "running" | "finished" | "failed" | "crashed" | "queued";
 
@@ -50,6 +53,7 @@ const NOUN = ["sweep", "yak", "comet", "drift", "fern", "owl", "kite", "harbor",
   "thicket", "amber", "knot", "tundra", "cinder", "moth", "vellum", "quarry"];
 
 export const PROJECTS: MockProject[] = [
+  { id: "p_demo", slug: "mnist-mlp",        name: "MNIST-MLP",          description: `Real MLP trained on MNIST · ${DEMO_SUMMARY.epochs} epochs, ${DEMO_SUMMARY.optimizer}, lr=${DEMO_SUMMARY.lr}`, framework: "PyTorch (CPU)", runCount: 1, activeCount: DEMO_RUN.status === "running" ? 1 : 0, updated: DEMO_RUN.startedAt },
   { id: "p_01", slug: "viscount-lm",        name: "Viscount-LM",        description: "1.4B param decoder-only, FineWeb-edu pretraining", framework: "PyTorch 2.5",  runCount: 247, activeCount: 6, updated: "2026-06-03T09:14:00Z" },
   { id: "p_02", slug: "retina-seg",         name: "Retina-Seg",         description: "OCT layer segmentation, U-Net++ with attention",   framework: "JAX 0.4",      runCount:  89, activeCount: 1, updated: "2026-06-02T22:01:00Z" },
   { id: "p_03", slug: "halcyon-rl",         name: "Halcyon-RL",         description: "Offline RL for robotic grasping, IQL baseline",     framework: "PyTorch 2.5",  runCount: 412, activeCount: 3, updated: "2026-06-03T07:46:00Z" },
@@ -63,6 +67,9 @@ const ARCHS = ["transformer-1.4B", "unet++", "iql-mlp", "conformer-m", "dit-xl",
 const GPUS = ["8× H100 SXM", "4× A100 80G", "1× H100 PCIe", "16× H100 SXM", "2× L40S"];
 
 export function runsForProject(slug: string, count = 60): MockRun[] {
+  // The mnist-mlp project shows the real demo run only.
+  if (slug === "mnist-mlp") return [DEMO_RUN];
+
   const r = rng(slug.split("").reduce((a, c) => a + c.charCodeAt(0), 7));
   const out: MockRun[] = [];
   for (let i = 0; i < count; i++) {
