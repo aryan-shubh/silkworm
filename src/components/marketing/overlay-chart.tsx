@@ -10,7 +10,7 @@ import {
   YAxis,
 } from "recharts";
 
-const COLORS = ["oklch(0.46 0.12 262)", "oklch(0.58 0.10 152)"];
+const COLORS = ["var(--color-accent)", "var(--color-success)"];
 
 export function OverlayChart({
   base,
