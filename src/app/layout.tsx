@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Sans, JetBrains_Mono } from "next/font/google";
+import {
+  IBM_Plex_Sans,
+  Instrument_Serif,
+  JetBrains_Mono,
+} from "next/font/google";
 import "./globals.css";
 
 const sans = IBM_Plex_Sans({
@@ -16,6 +20,13 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-serif-loaded",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "Silkworm — experiment tracking",
   description: "A research-grade tracker for machine learning experiments.",
@@ -27,7 +38,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    <html
+      lang="en"
+      className={`${sans.variable} ${mono.variable} ${instrumentSerif.variable}`}
+    >
       <body>{children}</body>
     </html>
   );

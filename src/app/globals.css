@@ -35,6 +35,7 @@
   /* ───────────── fonts ───────────── */
   --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --font-serif: var(--font-serif-loaded), Georgia, "Times New Roman", serif;
 
   /* ───────────── radii ───────────── */
   --radius-xs: 2px;
