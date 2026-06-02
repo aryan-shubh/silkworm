@@ -9,7 +9,7 @@ for step, (x, y) in enumerate(loader):
 export function CodeSample() {
   const lines = SNIPPET.trimEnd().split("\n");
   return (
-    <div className="overflow-hidden rounded-lg border border-line bg-surface">
+    <div className="overflow-hidden border border-line bg-surface">
       <div className="flex items-center justify-between border-b border-line px-4 py-2 text-[11px] text-ink-3">
         <span className="font-mono">train.py</span>
         <span className="font-mono">python</span>
