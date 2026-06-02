@@ -26,7 +26,7 @@ export function Hero() {
             href="#sdk"
             className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface px-4 py-2.5 text-[13px] font-medium text-ink-2 hover:border-line-strong hover:text-ink"
           >
-            Read the docs
+            See the SDK
           </a>
         </div>
       </div>
