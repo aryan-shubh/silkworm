@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Seed PlanetScale with the demo state the dashboard expects.
+ * Seed Postgres with the demo state the dashboard expects.
  * Idempotent: drops + reinserts the acme org cascade on every run.
  * Refuses to run in production (NODE_ENV).
  */
@@ -115,7 +115,8 @@ async function main() {
           step,
           value,
         }));
-        // PlanetScale single-statement insert size limit ~64MB; chunk by 1000.
+        // Chunk inserts to keep parameter counts under Postgres's 65k limit
+        // (1000 rows × 4 cols = 4000 params, well under).
         for (let i = 0; i < rows.length; i += 1000) {
           await db.insert(schema.runMetrics).values(rows.slice(i, i + 1000));
         }

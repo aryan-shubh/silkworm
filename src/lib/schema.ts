@@ -1,31 +1,65 @@
 import {
-  mysqlTable,
+  pgTable,
+  pgEnum,
   varchar,
   text,
   timestamp,
-  int,
+  integer,
   bigint,
   boolean,
-  json,
+  jsonb,
+  doublePrecision,
   index,
   uniqueIndex,
-  mysqlEnum,
-  double,
-} from "drizzle-orm/mysql-core";
+} from "drizzle-orm/pg-core";
+
+/* ─────────── enums ─────────── */
+
+export const memberRole = pgEnum("member_role", [
+  "owner",
+  "admin",
+  "member",
+  "viewer",
+]);
+
+export const projectVisibility = pgEnum("project_visibility", [
+  "private",
+  "internal",
+  "public",
+]);
+
+export const runStatus = pgEnum("run_status", [
+  "queued",
+  "running",
+  "finished",
+  "failed",
+  "crashed",
+  "killed",
+]);
+
+export const artifactType = pgEnum("artifact_type", [
+  "model",
+  "dataset",
+  "code",
+  "result",
+]);
 
 /* ─────────── auth (Better Auth core tables) ─────────── */
 
-export const users = mysqlTable("users", {
+export const users = pgTable("users", {
   id: varchar("id", { length: 36 }).primaryKey(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   name: varchar("name", { length: 128 }),
   image: text("image"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
 });
 
-export const sessions = mysqlTable(
+export const sessions = pgTable(
   "sessions",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -40,7 +74,7 @@ export const sessions = mysqlTable(
   (t) => [index("idx_sessions_user").on(t.userId)],
 );
 
-export const accounts = mysqlTable(
+export const accounts = pgTable(
   "accounts",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -56,7 +90,7 @@ export const accounts = mysqlTable(
   (t) => [uniqueIndex("uniq_provider_account").on(t.providerId, t.accountId)],
 );
 
-export const verifications = mysqlTable("verifications", {
+export const verifications = pgTable("verifications", {
   id: varchar("id", { length: 36 }).primaryKey(),
   identifier: varchar("identifier", { length: 255 }).notNull(),
   value: text("value").notNull(),
@@ -66,7 +100,7 @@ export const verifications = mysqlTable("verifications", {
 
 /* ─────────── orgs ─────────── */
 
-export const orgs = mysqlTable("orgs", {
+export const orgs = pgTable("orgs", {
   id: varchar("id", { length: 36 }).primaryKey(),
   slug: varchar("slug", { length: 64 }).notNull().unique(),
   name: varchar("name", { length: 128 }).notNull(),
@@ -74,15 +108,13 @@ export const orgs = mysqlTable("orgs", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-export const members = mysqlTable(
+export const members = pgTable(
   "members",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
     orgId: varchar("org_id", { length: 36 }).notNull(),
     userId: varchar("user_id", { length: 36 }).notNull(),
-    role: mysqlEnum("role", ["owner", "admin", "member", "viewer"])
-      .default("member")
-      .notNull(),
+    role: memberRole("role").default("member").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [
@@ -91,7 +123,7 @@ export const members = mysqlTable(
   ],
 );
 
-export const apiKeys = mysqlTable(
+export const apiKeys = pgTable(
   "api_keys",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -109,7 +141,7 @@ export const apiKeys = mysqlTable(
 
 /* ─────────── projects, runs, artifacts ─────────── */
 
-export const projects = mysqlTable(
+export const projects = pgTable(
   "projects",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
@@ -117,44 +149,33 @@ export const projects = mysqlTable(
     slug: varchar("slug", { length: 64 }).notNull(),
     name: varchar("name", { length: 128 }).notNull(),
     description: text("description"),
-    visibility: mysqlEnum("visibility", ["private", "internal", "public"])
-      .default("private")
-      .notNull(),
+    visibility: projectVisibility("visibility").default("private").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [uniqueIndex("uniq_project_slug").on(t.orgId, t.slug)],
 );
 
-export const runs = mysqlTable(
+export const runs = pgTable(
   "runs",
   {
     id: varchar("id", { length: 36 }).primaryKey(), // ulid
     projectId: varchar("project_id", { length: 36 }).notNull(),
     displayName: varchar("display_name", { length: 128 }).notNull(),
     userId: varchar("user_id", { length: 36 }).notNull(),
-    status: mysqlEnum("status", [
-      "queued",
-      "running",
-      "finished",
-      "failed",
-      "crashed",
-      "killed",
-    ])
-      .default("queued")
-      .notNull(),
+    status: runStatus("status").default("queued").notNull(),
     group: varchar("group", { length: 64 }),
     jobType: varchar("job_type", { length: 64 }),
     notes: text("notes"),
-    tags: json("tags").$type<string[]>().default([]).notNull(),
-    config: json("config")
+    tags: jsonb("tags").$type<string[]>().default([]).notNull(),
+    config: jsonb("config")
       .$type<Record<string, unknown>>()
       .default({})
       .notNull(),
-    summary: json("summary")
+    summary: jsonb("summary")
       .$type<Record<string, number>>()
       .default({})
       .notNull(),
-    systemInfo: json("system_info")
+    systemInfo: jsonb("system_info")
       .$type<Record<string, unknown>>()
       .default({})
       .notNull(),
@@ -162,7 +183,7 @@ export const runs = mysqlTable(
     heartbeatAt: timestamp("heartbeat_at"),
     endedAt: timestamp("ended_at"),
     durationMs: bigint("duration_ms", { mode: "number" }),
-    exitCode: int("exit_code"),
+    exitCode: integer("exit_code"),
   },
   (t) => [
     index("idx_runs_project_started").on(t.projectId, t.startedAt),
@@ -170,19 +191,19 @@ export const runs = mysqlTable(
   ],
 );
 
-export const artifacts = mysqlTable(
+export const artifacts = pgTable(
   "artifacts",
   {
     id: varchar("id", { length: 36 }).primaryKey(),
     projectId: varchar("project_id", { length: 36 }).notNull(),
     runId: varchar("run_id", { length: 36 }),
     name: varchar("name", { length: 128 }).notNull(),
-    type: mysqlEnum("type", ["model", "dataset", "code", "result"]).notNull(),
-    version: int("version").notNull(),
+    type: artifactType("type").notNull(),
+    version: integer("version").notNull(),
     sha256: varchar("sha256", { length: 64 }).notNull(),
     sizeBytes: bigint("size_bytes", { mode: "number" }).notNull(),
     s3Key: text("s3_key").notNull(),
-    metadata: json("metadata")
+    metadata: jsonb("metadata")
       .$type<Record<string, unknown>>()
       .default({})
       .notNull(),
@@ -194,13 +215,13 @@ export const artifacts = mysqlTable(
   ],
 );
 
-export const runMetrics = mysqlTable(
+export const runMetrics = pgTable(
   "run_metrics",
   {
     runId: varchar("run_id", { length: 36 }).notNull(),
     name: varchar("name", { length: 64 }).notNull(),
     step: bigint("step", { mode: "number" }).notNull(),
-    value: double("value").notNull(),
+    value: doublePrecision("value").notNull(),
   },
   (t) => [
     uniqueIndex("uniq_run_metric_step").on(t.runId, t.name, t.step),
