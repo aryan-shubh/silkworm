@@ -9,20 +9,20 @@ import {
 import { PageHeader } from "@/components/app/page-header";
 import { Sparkline } from "@/components/ui/sparkline";
 import { StatusDot } from "@/components/ui/status-dot";
+import { RunStatusPill } from "@/components/dashboard/run-status-pill";
+import { Card as DrisCard, CardContent, CardHeader, CardTitle } from "@/components/dris/card";
 import {
-  ACME_DEMO_ORG_ID,
   getCurrentOrg,
   listProjects,
   listRunsForProject,
   type Run,
-} from "@/lib/queries";
-import { formatDuration, projectName, relTime } from "@/lib/utils";
+} from "@/lib/cached-queries";
+import { formatDuration, relTime } from "@/lib/utils";
 
 export default async function AllRunsPage() {
-  const [org, projects] = await Promise.all([
-    getCurrentOrg(),
-    listProjects(ACME_DEMO_ORG_ID),
-  ]);
+  const org = await getCurrentOrg();
+  if (!org) return <p className="p-6 text-sm text-muted-foreground">No org selected.</p>;
+  const projects = await listProjects(org.id);
 
   // Aggregate across every project. We don't sort; rows naturally fall by
   // recency because mock.ts already sorts each project's runs newest-first.
@@ -42,7 +42,7 @@ export default async function AllRunsPage() {
   return (
     <>
       <PageHeader
-        crumbs={[{ href: "/dashboard", label: org.slug }, { label: "All runs" }]}
+        crumbs={[{ href: "/dashboard", label: org.slug ?? "—" }, { label: "All runs" }]}
         title="All runs"
         meta={
           <>
@@ -77,11 +77,18 @@ export default async function AllRunsPage() {
       <div className="space-y-6 p-8">
         {/* Stat row */}
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <StatCard
-            label="Total runs"
-            value={total.toLocaleString()}
-            sublabel="last 7 days"
-          />
+          {/* Hero metric card — frosted Y2K glass */}
+          <DrisCard variant="frosted" rounded="lg">
+            <CardHeader>
+              <CardTitle>Total runs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-[28px] font-semibold tracking-tight tabular text-ink">
+                {total.toLocaleString()}
+              </div>
+              <div className="mt-0.5 text-[12px] text-ink-3">last 7 days</div>
+            </CardContent>
+          </DrisCard>
           <StatCard
             label="Running"
             value={running.toString()}
@@ -153,7 +160,7 @@ export default async function AllRunsPage() {
                     className="group border-b border-line/70 last:border-0 hover:bg-surface-2/60"
                   >
                     <td className="py-3 pl-4">
-                      <StatusDot status={r.status} />
+                      <RunStatusPill status={r.status as "queued" | "running" | "finished" | "failed" | "crashed" | "killed"} />
                     </td>
                     <td className="py-3">
                       <Link
@@ -175,7 +182,8 @@ export default async function AllRunsPage() {
                         href={`/dashboard/p/${r.projectSlug}`}
                         className="text-[12px] text-ink-2 hover:text-accent"
                       >
-                        {projectName(r.projectSlug)}
+                        {/* TODO: add projectName field to Run type once query carries it */}
+                        {r.projectSlug}
                       </Link>
                     </td>
                     <td className="py-3 text-ink-2">{r.user}</td>

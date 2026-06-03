@@ -11,12 +11,11 @@ import {
 import { PageHeader } from "@/components/app/page-header";
 import { Pill } from "@/components/ui/pill";
 import {
-  ACME_DEMO_ORG_ID,
   getCurrentOrg,
   listArtifactsForProject,
   type Artifact,
-} from "@/lib/queries";
-import { formatBytes, projectName, relTime } from "@/lib/utils";
+} from "@/lib/cached-queries";
+import { formatBytes, relTime } from "@/lib/utils";
 
 type ArtifactType = Artifact["type"];
 
@@ -35,10 +34,9 @@ const TYPE_META: Record<
 };
 
 export default async function ArtifactsPage() {
-  const [org, artifacts] = await Promise.all([
-    getCurrentOrg(),
-    listArtifactsForProject(ACME_DEMO_ORG_ID),
-  ]);
+  const org = await getCurrentOrg();
+  if (!org) return <p className="p-6 text-sm text-muted-foreground">No org selected.</p>;
+  const artifacts = await listArtifactsForProject(org.id);
   const byType = (t: ArtifactType) => artifacts.filter((a) => a.type === t);
   const totalBytes = artifacts.reduce((s, a) => s + a.sizeBytes, 0);
   const totalDownloads = artifacts.reduce((s, a) => s + a.downloads, 0);
@@ -47,7 +45,7 @@ export default async function ArtifactsPage() {
     <>
       <PageHeader
         crumbs={[
-          { href: "/dashboard", label: org.slug },
+          { href: "/dashboard", label: org.slug ?? "—" },
           { label: "Artifacts" },
         ]}
         title="Artifacts"
@@ -248,7 +246,8 @@ export default async function ArtifactsPage() {
                         href={`/dashboard/p/${a.projectSlug}`}
                         className="text-[12px] text-ink-2 hover:text-accent"
                       >
-                        {projectName(a.projectSlug)}
+                        {/* TODO: add projectName field to Artifact type once query carries it */}
+                        {a.projectSlug}
                       </Link>
                     </td>
                     <td className="py-3 font-mono tabular">

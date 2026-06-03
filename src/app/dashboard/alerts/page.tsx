@@ -14,14 +14,13 @@ import {
 import { PageHeader } from "@/components/app/page-header";
 import { Pill } from "@/components/ui/pill";
 import {
-  ACME_DEMO_ORG_ID,
   getCurrentOrg,
   listAlertEvents,
   listAlertRules,
   type AlertEvent,
   type AlertRule,
-} from "@/lib/queries";
-import { projectName, relTime } from "@/lib/utils";
+} from "@/lib/cached-queries";
+import { relTime } from "@/lib/utils";
 
 type AlertSeverity = AlertRule["severity"];
 type AlertChannel = AlertRule["channels"][number];
@@ -63,10 +62,11 @@ const CHANNEL_ICON: Record<AlertChannel, React.ElementType> = {
 };
 
 export default async function AlertsPage() {
-  const [org, rules, events] = await Promise.all([
-    getCurrentOrg(),
-    listAlertRules(ACME_DEMO_ORG_ID),
-    listAlertEvents(ACME_DEMO_ORG_ID),
+  const org = await getCurrentOrg();
+  if (!org) return <p className="p-6 text-sm text-muted-foreground">No org selected.</p>;
+  const [rules, events] = await Promise.all([
+    listAlertRules(org.id),
+    listAlertEvents(org.id),
   ]);
   const enabledRules = rules.filter((r) => r.enabled).length;
   const last24h = events.filter(
@@ -78,7 +78,7 @@ export default async function AlertsPage() {
   return (
     <>
       <PageHeader
-        crumbs={[{ href: "/dashboard", label: org.slug }, { label: "Alerts" }]}
+        crumbs={[{ href: "/dashboard", label: org.slug ?? "—" }, { label: "Alerts" }]}
         title="Alerts"
         meta={
           <>
@@ -227,7 +227,8 @@ function RuleRow({ rule }: { rule: AlertRule }) {
           <h3 className="text-[14px] font-semibold text-ink">{rule.name}</h3>
           <Pill tone={sev.tone}>{sev.label}</Pill>
           <Pill>
-            {rule.scope === "global" ? "All projects" : projectName(rule.scope)}
+            {/* TODO: resolve rule.scope slug to project name once AlertRule carries project.name */}
+            {rule.scope === "global" ? "All projects" : rule.scope}
           </Pill>
           {!rule.enabled && <Pill tone="neutral">Disabled</Pill>}
         </div>
@@ -301,7 +302,8 @@ function EventRow({ event }: { event: AlertEvent }) {
             href={`/dashboard/p/${event.projectSlug}`}
             className="hover:text-accent"
           >
-            {projectName(event.projectSlug)}
+            {/* TODO: resolve event.projectSlug to project name once AlertEvent carries project.name */}
+            {event.projectSlug}
           </Link>
           {event.runId && (
             <>

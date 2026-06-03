@@ -12,12 +12,11 @@ import { Sparkline } from "@/components/ui/sparkline";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Pill } from "@/components/ui/pill";
 import {
-  ACME_DEMO_ORG_ID,
   getCurrentOrg,
   listSweeps,
   type Sweep,
-} from "@/lib/queries";
-import { projectName, relTime } from "@/lib/utils";
+} from "@/lib/cached-queries";
+import { relTime } from "@/lib/utils";
 
 const METHOD_LABEL: Record<Sweep["method"], string> = {
   bayes: "Bayesian",
@@ -37,16 +36,15 @@ const STATUS_TONE: Record<
 };
 
 export default async function SweepsPage() {
-  const [org, sweeps] = await Promise.all([
-    getCurrentOrg(),
-    listSweeps(ACME_DEMO_ORG_ID),
-  ]);
+  const org = await getCurrentOrg();
+  if (!org) return <p className="p-6 text-sm text-muted-foreground">No org selected.</p>;
+  const sweeps = await listSweeps(org.id);
 
   if (sweeps.length === 0) {
     return (
       <>
         <PageHeader
-          crumbs={[{ href: "/dashboard", label: org.slug }, { label: "Sweeps" }]}
+          crumbs={[{ href: "/dashboard", label: org.slug ?? "—" }, { label: "Sweeps" }]}
           title="Sweeps"
           meta={<span>No sweeps yet</span>}
         />
@@ -65,7 +63,7 @@ export default async function SweepsPage() {
   return (
     <>
       <PageHeader
-        crumbs={[{ href: "/dashboard", label: org.slug }, { label: "Sweeps" }]}
+        crumbs={[{ href: "/dashboard", label: org.slug ?? "—" }, { label: "Sweeps" }]}
         title="Hyperparameter sweeps"
         meta={
           <>
@@ -169,7 +167,8 @@ function FeaturedSweep({ sweep: s }: { sweep: Sweep }) {
               href={`/dashboard/p/${s.projectSlug}`}
               className="text-[12px] text-ink-2 hover:text-accent"
             >
-              {projectName(s.projectSlug)}
+              {/* TODO: add projectName field to Sweep type once query carries it */}
+              {s.projectSlug}
             </Link>
           </div>
           <h2 className="mt-2 text-[22px] font-semibold tracking-tight text-ink">
@@ -336,7 +335,8 @@ function SweepCard({ sweep: s }: { sweep: Sweep }) {
             {s.name}
           </h3>
           <p className="mt-0.5 text-[12px] text-ink-3">
-            {projectName(s.projectSlug)} · started {relTime(s.startedAt)}
+            {/* TODO: add projectName field to Sweep type once query carries it */}
+            {s.projectSlug} · started {relTime(s.startedAt)}
           </p>
         </div>
       </div>
