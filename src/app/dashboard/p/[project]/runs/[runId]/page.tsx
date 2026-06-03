@@ -13,12 +13,12 @@ import { MetricChart } from "@/components/charts/metric-chart";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Pill } from "@/components/ui/pill";
 import { Sparkline } from "@/components/ui/sparkline";
+import { RunStatusPill } from "@/components/dashboard/run-status-pill";
 import {
-  ACME_DEMO_ORG_ID,
   getCurrentOrg,
   getProjectBySlug,
   getRunById,
-} from "@/lib/queries";
+} from "@/lib/cached-queries";
 import { formatDuration, relTime } from "@/lib/utils";
 
 export default async function RunPage({
@@ -27,10 +27,11 @@ export default async function RunPage({
   params: Promise<{ project: string; runId: string }>;
 }) {
   const { project: slug, runId } = await params;
-  const [project, run, org] = await Promise.all([
-    getProjectBySlug(ACME_DEMO_ORG_ID, slug),
+  const org = await getCurrentOrg();
+  if (!org) return <p className="p-6 text-sm text-muted-foreground">No org selected.</p>;
+  const [project, run] = await Promise.all([
+    getProjectBySlug(org.id, slug),
     getRunById(slug, runId),
-    getCurrentOrg(),
   ]);
   if (!project || !run) return notFound();
 
@@ -40,30 +41,18 @@ export default async function RunPage({
     const a = m(name);
     return a.length ? a[a.length - 1] : fallback;
   };
-  const statusTone =
-    run.status === "running"
-      ? "success"
-      : run.status === "finished"
-        ? "neutral"
-        : run.status === "failed" || run.status === "crashed"
-          ? "fail"
-          : "warn";
-
   return (
     <>
       <PageHeader
         crumbs={[
-          { href: "/dashboard", label: org.slug },
+          { href: "/dashboard", label: org.slug ?? "—" },
           { href: `/dashboard/p/${slug}`, label: project.slug },
           { label: "runs" },
         ]}
         title={
           <span className="flex items-center gap-3">
             <span>{run.name}</span>
-            <Pill tone={statusTone as "success" | "neutral" | "fail" | "warn"}>
-              <StatusDot status={run.status} />
-              <span className="capitalize">{run.status}</span>
-            </Pill>
+            <RunStatusPill status={run.status as "queued" | "running" | "finished" | "failed" | "crashed" | "killed"} />
           </span>
         }
         meta={

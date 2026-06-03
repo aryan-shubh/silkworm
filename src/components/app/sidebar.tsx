@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { Kbd } from "@/components/ui/kbd";
-import { getCurrentOrg, getCurrentUser } from "@/lib/queries";
+import { getCurrentOrg, getCurrentUser } from "@/lib/cached-queries";
 
 const PRIMARY = [
   { href: "/dashboard", label: "Projects", icon: LayoutGrid },
@@ -47,7 +47,7 @@ export async function Sidebar() {
             </span>
             <span className="min-w-0">
               <span className="block truncate text-[12px] font-medium text-ink">
-                {org.name}
+                {org?.name ?? "No org"}
               </span>
               <span className="block truncate text-[10px] text-ink-3">
                 Team · 14 seats

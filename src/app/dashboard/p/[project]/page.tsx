@@ -12,12 +12,14 @@ import { PageHeader } from "@/components/app/page-header";
 import { Sparkline } from "@/components/ui/sparkline";
 import { StatusDot } from "@/components/ui/status-dot";
 import { Pill } from "@/components/ui/pill";
+import { RunStatusPill } from "@/components/dashboard/run-status-pill";
+import { Button as DrisButton } from "@/components/dris/button";
+import { Badge as DrisBadge } from "@/components/dris/badge";
 import {
-  ACME_DEMO_ORG_ID,
   getCurrentOrg,
   getProjectBySlug,
   listRunsForProject,
-} from "@/lib/queries";
+} from "@/lib/cached-queries";
 import { formatDuration, formatNum, relTime } from "@/lib/utils";
 
 export default async function ProjectPage({
@@ -26,10 +28,9 @@ export default async function ProjectPage({
   params: Promise<{ project: string }>;
 }) {
   const { project: slug } = await params;
-  const [project, org] = await Promise.all([
-    getProjectBySlug(ACME_DEMO_ORG_ID, slug),
-    getCurrentOrg(),
-  ]);
+  const org = await getCurrentOrg();
+  if (!org) return <p className="p-6 text-sm text-muted-foreground">No org selected.</p>;
+  const project = await getProjectBySlug(org.id, slug);
   if (!project) return notFound();
   const runs = await listRunsForProject(slug, { limit: 80 });
 
@@ -46,7 +47,7 @@ export default async function ProjectPage({
     <>
       <PageHeader
         crumbs={[
-          { href: "/dashboard", label: org.slug },
+          { href: "/dashboard", label: org.slug ?? "—" },
           { label: project.slug },
         ]}
         title={project.name}
@@ -54,7 +55,7 @@ export default async function ProjectPage({
           <>
             <span>{project.description}</span>
             <span className="text-line-strong">·</span>
-            <span>{project.framework}</span>
+            <DrisBadge variant="frosted" rounded="sm">{project.framework ?? "—"}</DrisBadge>
           </>
         }
         actions={
@@ -71,9 +72,10 @@ export default async function ProjectPage({
             >
               Compare
             </Button>
-            <Button icon={<Play className="h-3.5 w-3.5" />} variant="primary">
+            <DrisButton variant="aqua">
+              <Play className="h-3.5 w-3.5" />
               New run
-            </Button>
+            </DrisButton>
           </>
         }
       />
@@ -194,7 +196,7 @@ export default async function ProjectPage({
                     className="group border-b border-line/70 hover:bg-surface-2/60"
                   >
                     <td className="py-3 pl-4">
-                      <StatusDot status={r.status} />
+                      <RunStatusPill status={r.status as "queued" | "running" | "finished" | "failed" | "crashed" | "killed"} />
                     </td>
                     <td className="py-3">
                       <Link

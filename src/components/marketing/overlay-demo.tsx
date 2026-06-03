@@ -1,4 +1,5 @@
-import { DEMO_RUN_ID, getRunMetrics } from "@/lib/queries";
+// DEMO_RUN_ID is sourced from env via src/lib/demo-ids.ts — override with DEMO_RUN_ID=... in .env
+import { DEMO_RUN_ID, getRunMetrics } from "@/lib/cached-queries";
 import { OverlayChart } from "./overlay-chart";
 
 export async function OverlayDemo() {

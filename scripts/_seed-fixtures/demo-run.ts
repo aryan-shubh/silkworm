@@ -192,7 +192,8 @@ const ACCURACY = [
 
 // No real GPU on a Mac — synthesise a flat-ish CPU utilisation curve so the
 // dashboard tile has *something* to draw.
-const GPU_UTIL = Array.from({ length: TRAIN_LOSS.length }, (_, i) =>
+// FIX 9: renamed from GPU_UTIL to CPU_UTIL since this run was CPU-trained.
+const CPU_UTIL = Array.from({ length: TRAIN_LOSS.length }, (_, i) =>
   Math.round(82 + Math.sin(i / 23) * 4 + Math.cos(i / 11) * 3),
 );
 
@@ -245,7 +246,7 @@ export const DEMO_RUN: MockRun = {
     { name: "accuracy", data: ACCURACY },
     { name: "grad_norm", data: GRAD_NORM },
     { name: "lr", data: LR },
-    { name: "gpu_util", data: GPU_UTIL },
+    { name: "gpu_util", data: CPU_UTIL },
   ],
   arch: DEMO_SUMMARY.arch,
   gpu: "1× CPU · Apple M-series",

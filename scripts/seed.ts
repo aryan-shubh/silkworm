@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * Seed PlanetScale with the demo state the dashboard expects.
+ * Seed Postgres with the demo state the dashboard expects.
  * Idempotent: drops + reinserts the acme org cascade on every run.
  * Refuses to run in production (NODE_ENV).
  */
@@ -75,6 +75,7 @@ async function main() {
       slug: p.slug,
       name: p.name,
       description: p.description,
+      framework: p.framework,
       visibility: "private",
     });
   }
@@ -115,7 +116,7 @@ async function main() {
           step,
           value,
         }));
-        // PlanetScale single-statement insert size limit ~64MB; chunk by 1000.
+        // Chunk inserts by 1000 rows to keep prepared-statement parameter counts under Postgres' 65535 cap.
         for (let i = 0; i < rows.length; i += 1000) {
           await db.insert(schema.runMetrics).values(rows.slice(i, i + 1000));
         }
@@ -134,7 +135,7 @@ async function main() {
       name: a.name,
       type: a.type,
       version: a.latestVersion,
-      sha256: a.sha256.replace(/^0x/, "").padEnd(64, "0").slice(0, 64),
+      sha256: a.sha256.slice(0, 64),
       sizeBytes: a.sizeBytes,
       s3Key: `s3://silkworm/${a.id}`,
       metadata: { downloads: a.downloads, sourceRunName: a.sourceRunName },

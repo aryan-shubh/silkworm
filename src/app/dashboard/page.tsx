@@ -3,11 +3,12 @@ import { Plus, Search } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Sparkline } from "@/components/ui/sparkline";
 import { Pill } from "@/components/ui/pill";
+import { Button as DrisButton } from "@/components/dris/button";
+import { Card as DrisCard, CardContent, CardHeader, CardTitle } from "@/components/dris/card";
 import {
-  ACME_DEMO_ORG_ID,
   listProjects,
   getCurrentOrg,
-} from "@/lib/queries";
+} from "@/lib/cached-queries";
 import { relTime } from "@/lib/utils";
 
 function projSpark(seed: string): number[] {
@@ -20,17 +21,16 @@ function projSpark(seed: string): number[] {
 }
 
 export default async function DashboardPage() {
-  const [projects, org] = await Promise.all([
-    listProjects(ACME_DEMO_ORG_ID),
-    getCurrentOrg(),
-  ]);
+  const org = await getCurrentOrg();
+  if (!org) return <p className="p-6 text-sm text-muted-foreground">No org selected.</p>;
+  const projects = await listProjects(org.id);
   const totalRuns = projects.reduce((s, p) => s + p.runCount, 0);
   const totalActive = projects.reduce((s, p) => s + p.activeCount, 0);
 
   return (
     <>
       <PageHeader
-        crumbs={[{ href: "/dashboard", label: org.slug }]}
+        crumbs={[{ href: "/dashboard", label: org.slug ?? "—" }]}
         title="Projects"
         meta={
           <>
@@ -53,18 +53,32 @@ export default async function DashboardPage() {
                 className="w-44 border-0 bg-transparent text-ink outline-0 placeholder:text-ink-3"
               />
             </div>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-canvas hover:bg-accent-hover"
-            >
+            <DrisButton variant="aqua">
               <Plus className="h-3.5 w-3.5" />
               New project
-            </button>
+            </DrisButton>
           </>
         }
       />
 
       <div className="p-8">
+        {/* Hero metric — frosted Y2K glass */}
+        <div className="mb-6 max-w-[220px]">
+          <DrisCard variant="frosted" rounded="lg">
+            <CardHeader>
+              <CardTitle>Active runs</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-[32px] font-semibold tracking-tight tabular text-ink leading-none">
+                {totalActive}
+              </div>
+              <div className="mt-1 text-[12px] text-ink-3">
+                across {projects.length} projects
+              </div>
+            </CardContent>
+          </DrisCard>
+        </div>
+
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {projects.map((p) => (
             <Link
@@ -92,7 +106,7 @@ export default async function DashboardPage() {
               <div className="flex items-end justify-between gap-4 border-t border-line pt-4">
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[12px]">
                   <Stat label="Runs" value={p.runCount.toLocaleString()} />
-                  <Stat label="Framework" value={p.framework} />
+                  <Stat label="Framework" value={p.framework ?? "—"} />
                   <Stat label="Updated" value={relTime(p.updated)} />
                   <Stat label="Visibility" value="Private" />
                 </dl>
