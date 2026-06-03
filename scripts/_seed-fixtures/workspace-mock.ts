@@ -3,7 +3,13 @@
  * Deterministic, indexed by name so the UI is stable across refreshes.
  */
 
+import { createHash } from "node:crypto";
 import { PROJECTS } from "./mock";
+
+// FIX 8: Derive realistic 64-char hex SHA256 from artifact name deterministically.
+function artifactSha(name: string): string {
+  return createHash("sha256").update(`silkworm-demo:${name}`).digest("hex");
+}
 
 /* ───────────────────────── artifacts ───────────────────────── */
 
@@ -36,7 +42,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 7,
     versionCount: 7,
     sizeBytes: 5_613_000_000,
-    sha256: "0x4f2a91be33…",
+    sha256: artifactSha("viscount-1.4b-step-220k"),
     sourceRunId: "r_viscount-lm_0000",
     sourceRunName: "wise-sweep-042",
     createdAt: "2026-06-03T08:14:00Z",
@@ -50,7 +56,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 2,
     versionCount: 2,
     sizeBytes: 18_400_000_000,
-    sha256: "0x6c12aa01…",
+    sha256: artifactSha("fineweb-edu-2T-shard-014"),
     sourceRunId: "r_viscount-lm_0007",
     sourceRunName: "amber-yak-117",
     createdAt: "2026-05-28T19:42:00Z",
@@ -64,7 +70,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 1,
     versionCount: 1,
     sizeBytes: 1_810_000,
-    sha256: "0xb44a82c1…",
+    sha256: artifactSha("mnist-mlp-256-128"),
     sourceRunId: "demo-run-1",
     sourceRunName: "demo-run-1",
     createdAt: "2026-06-02T18:11:04Z",
@@ -78,7 +84,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 12,
     versionCount: 12,
     sizeBytes: 840_000_000,
-    sha256: "0xdd9c0210…",
+    sha256: artifactSha("oct-unet-attn-best"),
     sourceRunId: "r_retina-seg_0003",
     sourceRunName: "iron-comet-008",
     createdAt: "2026-06-02T11:30:00Z",
@@ -92,7 +98,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 3,
     versionCount: 3,
     sizeBytes: 41_000_000_000,
-    sha256: "0x9871fa44…",
+    sha256: artifactSha("oct-shanghai-2024"),
     sourceRunId: "r_retina-seg_0001",
     sourceRunName: "feral-magnet-301",
     createdAt: "2026-05-19T08:00:00Z",
@@ -106,7 +112,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 23,
     versionCount: 23,
     sizeBytes: 310_000_000,
-    sha256: "0xa10c33aa…",
+    sha256: artifactSha("halcyon-iql-checkpoint"),
     sourceRunId: "r_halcyon-rl_0011",
     sourceRunName: "lucent-fjord-220",
     createdAt: "2026-06-03T07:46:00Z",
@@ -120,7 +126,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 4,
     versionCount: 4,
     sizeBytes: 12_900_000_000,
-    sha256: "0x55bbe911…",
+    sha256: artifactSha("robosuite-1.5m-traj"),
     sourceRunId: "r_halcyon-rl_0030",
     sourceRunName: "obsidian-kite-77",
     createdAt: "2026-05-22T12:00:00Z",
@@ -134,7 +140,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 9,
     versionCount: 9,
     sizeBytes: 1_240_000_000,
-    sha256: "0x71f30a3a…",
+    sha256: artifactSha("conformer-m-asr-en-de-fr"),
     sourceRunId: "r_thrush-asr_0001",
     sourceRunName: "candle-hare-019",
     createdAt: "2026-05-31T15:32:00Z",
@@ -148,7 +154,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 1,
     versionCount: 1,
     sizeBytes: 22_700_000_000,
-    sha256: "0xee7b049a…",
+    sha256: artifactSha("common-voice-19-mixed"),
     sourceRunId: "r_thrush-asr_0014",
     sourceRunName: "saffron-knot-441",
     createdAt: "2026-04-12T08:00:00Z",
@@ -162,7 +168,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 4,
     versionCount: 4,
     sizeBytes: 4_900_000_000,
-    sha256: "0x33ac0f72…",
+    sha256: artifactSha("obsidian-flow-dit-xl-512"),
     sourceRunId: "r_obsidian-diffusion_0000",
     sourceRunName: "tidal-thicket-12",
     createdAt: "2026-06-03T10:02:00Z",
@@ -176,7 +182,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 6,
     versionCount: 6,
     sizeBytes: 184_000,
-    sha256: "0x0a994411…",
+    sha256: artifactSha("eval-coco-30k-fid"),
     sourceRunId: "r_obsidian-diffusion_0002",
     sourceRunName: "noble-orbit-200",
     createdAt: "2026-06-03T09:00:00Z",
@@ -190,7 +196,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 41,
     versionCount: 41,
     sizeBytes: 11_400_000,
-    sha256: "0x6a7c4e3a…",
+    sha256: artifactSha("train-code-snapshot"),
     sourceRunId: "r_viscount-lm_0000",
     sourceRunName: "wise-sweep-042",
     createdAt: "2026-06-03T09:14:00Z",
@@ -204,7 +210,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 2,
     versionCount: 2,
     sizeBytes: 140_000_000,
-    sha256: "0x82fa0b71…",
+    sha256: artifactSha("patchtst-base-finetune"),
     sourceRunId: "r_ledger-forecast_0000",
     sourceRunName: "polar-vellum-09",
     createdAt: "2026-05-28T09:00:00Z",
@@ -218,7 +224,7 @@ export const ARTIFACTS: MockArtifact[] = [
     latestVersion: 18,
     versionCount: 18,
     sizeBytes: 44_000,
-    sha256: "0xff014411…",
+    sha256: artifactSha("policy-eval-mse-sweep"),
     sourceRunId: "r_halcyon-rl_0020",
     sourceRunName: "umbra-cinder-11",
     createdAt: "2026-06-03T05:00:00Z",
